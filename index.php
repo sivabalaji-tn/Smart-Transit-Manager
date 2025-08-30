@@ -7,6 +7,6 @@
     <link rel="icon" type="image/x-icon" href="/images/favicon.ico">
 </head>
 <body>
-        <h1>Welcome to the First official Project Bus Tracking System<h1>
+        <h1>Welcome to the First official Project Bus Tracking System.<h1>
 </body>
 </html>
