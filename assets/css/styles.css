@@ -1,0 +1,39 @@
+body {
+  background-color: #EDE8F5; /* Off White */
+  font-family: 'Segoe UI', sans-serif;
+  color: #111827;
+}
+
+.card {
+  background-color: #FFFFFF;
+  border-radius: 15px;
+  box-shadow: 0px 4px 12px rgba(0,0,0,0.1);
+  border: 1px solid #ADBBDA;
+}
+
+.form-header {
+  background-color: #3D53A0; /* Dark Indigo */
+  color: white;
+  padding: 1rem;
+  border-top-left-radius: 15px;
+  border-top-right-radius: 15px;
+  font-weight: bold;
+}
+
+.btn-primary {
+  background-color: #7091E6; /* Sky Blue */
+  border: none;
+}
+.btn-primary:hover {
+  background-color: #3D53A0; /* Indigo on hover */
+}
+
+.form-control, .form-select, textarea {
+  border-radius: 10px;
+  border: 1px solid #8697C4; /* Gray-Blue */
+}
+
+.progress-bar {
+  background-color: #84CC16; /* Green */
+  font-weight: bold;
+}
