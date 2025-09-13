@@ -87,6 +87,11 @@ if (isset($_POST['submit'])) {
         }
     </style>
 </head>
+<a href="admin-dashboard.php" class="btn btn-primary position-fixed top-0 end-0 m-4 rounded-circle shadow-lg"
+   style="width: 48px; height: 48px; display: flex; align-items: center; justify-content: center;" 
+   title="Go to Dashboard">
+ <i class="bi bi-house-door-fill text-white fs-5"></i>
+</a>
 <body class="bg-dark text-light">
     <?php
     if (isset($_SESSION['message'])): 
@@ -109,7 +114,7 @@ if (isset($_POST['submit'])) {
                 <div class="col-12 mb-3">
                     <label for="route_name" class="form-label">Route Name</label>
                     <div class="input-group">
-                        <span class="input-group-text"><i class="bi bi-geo-alt-fill"></i></span>
+                        <span class="input-group-text"><i class="bi bi-person-fill"></i></span>
                         <input type="text" class="form-control" id="route_name" name="route_name" required>
                     </div>
                 </div>
