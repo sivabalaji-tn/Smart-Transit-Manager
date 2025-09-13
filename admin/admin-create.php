@@ -1,196 +1,148 @@
-<?php include("../includes/db.php"); ?>
+<?php
+session_start();
+date_default_timezone_set('Asia/Kolkata');
+include '../includes/db.php';
+
+if (isset($_POST['submit'])) {
+    $full_name = htmlspecialchars($_POST['full_name']);
+    $email = htmlspecialchars($_POST['email']);
+    $password = $_POST['password']; 
+    $dob = htmlspecialchars($_POST['dob']);
+    $role = htmlspecialchars($_POST['role']);
+    $id_card_no = htmlspecialchars($_POST['id_card_no']);
+    $phone = htmlspecialchars($_POST['phone']);
+
+    $status = 'active';
+    $last_login = NULL;
+    $created_at = date('Y-m-d H:i:s');
+
+    $hashed_password = password_hash($password, PASSWORD_DEFAULT);
+
+    $sql = "INSERT INTO admins (full_name, email, password, dob, role, id_card_no, phone, status, last_login, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    
+    $stmt = $conn->prepare($sql);
+
+    if ($stmt) {
+        $stmt->bind_param("ssssssssss", $full_name, $email, $hashed_password, $dob, $role, $id_card_no, $phone, $status, $last_login, $created_at);
+
+        if ($stmt->execute()) {
+            $_SESSION['message'] = 'Admin account created successfully!';
+            $_SESSION['alert_type'] = 'success';
+        } else {
+            $_SESSION['message'] = 'Error creating account: ' . $stmt->error;
+            $_SESSION['alert_type'] = 'danger';
+        }
+
+        $stmt->close();
+    } else {
+        $_SESSION['message'] = 'Error in SQL query preparation: ' . $conn->error;
+        $_SESSION['alert_type'] = 'danger';
+    }
+
+    $conn->close();
+    header("Location: admin-create.php");
+    exit();
+}
+?>
 
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Create Admin | Smart Transit Manager</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
-  <link href="../assets/css/styles.css" rel="stylesheet">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create New Admin</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
 </head>
-<body>
-  <!-- ✅ Toast Container -->
-  <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 9999">
-    <div id="successToast" class="toast align-items-center text-bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
-      <div class="d-flex">
-        <div class="toast-body">
-          <i class="bi bi-check-circle-fill"></i> Admin created successfully!
-        </div>
-        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
-      </div>
+<a href="admin-dashboard.php" class="btn btn-primary position-fixed top-0 end-0 m-4 rounded-circle shadow-lg"
+   style="width: 48px; height: 48px; display: flex; align-items: center; justify-content: center;" 
+   title="Go to Dashboard">
+ <i class="bi bi-house-door-fill text-white fs-5"></i>
+</a>
+<body class="bg-dark text-light">
+    <?php
+    if (isset($_SESSION['message'])): 
+    ?>
+    <div class="alert alert-<?php echo $_SESSION['alert_type']; ?> alert-dismissible fade show text-center" role="alert">
+        <?php echo $_SESSION['message']; ?>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
+    <?php
+        unset($_SESSION['message']);
+        unset($_SESSION['alert_type']);
+    endif;
+    ?>
+    
+    <div class="container mt-5">
+        <h1 class="text-white mb-4 text-center">Admin Portal</h1>
+        
+        <form action="admin-create.php" method="POST">
+            <div class="row g-3">
+                <div class="col-12 mb-3">
+                    <label for="full_name" class="form-label">Full Name</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-person-fill"></i></span>
+                        <input type="text" class="form-control" id="full_name" name="full_name" required>
+                    </div>
+                </div>
 
-    <div id="errorToast" class="toast align-items-center text-bg-danger border-0" role="alert" aria-live="assertive" aria-atomic="true">
-      <div class="d-flex">
-        <div class="toast-body">
-          <i class="bi bi-exclamation-triangle-fill"></i> Error creating admin!
-        </div>
-        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
-      </div>
-    </div>
-  </div>
-  <!-- ✅ End Toast Container -->
+                <div class="col-md-6 mb-3">
+                    <label for="email" class="form-label">Email Address</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-envelope-fill"></i></span>
+                        <input type="email" class="form-control" id="email" name="email" required>
+                    </div>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="password" class="form-label">Password</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-lock-fill"></i></span>
+                        <input type="password" class="form-control" id="password" name="password" required>
+                    </div>
+                </div>
 
-  <div class="container py-5">
-    <div class="row justify-content-center">
-      <div class="col-md-10 col-lg-8">
-        <div class="card">
-          <div class="form-header text-center">
-            <h4><i class="bi bi-person-plus"></i> Create New Admin</h4>
-          </div>
-          <div class="card-body">
-            <div class="progress mb-4">
-              <div id="formProgress" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0"
-                   aria-valuemin="0" aria-valuemax="100">0%</div>
+                <div class="col-md-6 mb-3">
+                    <label for="dob" class="form-label">Date of Birth</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-calendar-date-fill"></i></span>
+                        <input type="date" class="form-control" id="dob" name="dob" required>
+                    </div>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="role" class="form-label">Role</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-person-badge-fill"></i></span>
+                        <select class="form-select" id="role" name="role" required>
+                            <option selected disabled>Select a role...</option>
+                            <option value="Shed Manager">Shed Manager</option>
+                            <option value="Control Unit">Control Unit</option>
+                            <option value="Vehicle Maintenance">Vehicle Maintenance</option>
+                            <option value="Bus Driver">Bus Driver</option>
+                            <option value="Bus Conductor">Bus Conductor</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label for="id_card_no" class="form-label">ID Card Number</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-credit-card-fill"></i></span>
+                        <input type="text" class="form-control" id="id_card_no" name="id_card_no" required>
+                    </div>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="phone" class="form-label">Phone Number</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-telephone-fill"></i></span>
+                        <input type="tel" class="form-control" id="phone" name="phone" required>
+                    </div>
+                </div>
             </div>
 
-            <form method="POST" action="" enctype="multipart/form-data">
-              <div class="mb-3">
-                <label class="form-label"><i class="bi bi-person"></i> Full Name</label>
-                <input type="text" class="form-control" name="full_name" required>
-              </div>
-
-              <div class="mb-3">
-                <label class="form-label"><i class="bi bi-envelope"></i> Email</label>
-                <input type="email" class="form-control" name="email" required>
-              </div>
-
-              <div class="mb-3">
-                <label class="form-label"><i class="bi bi-lock"></i> Password</label>
-                <input type="password" class="form-control" name="password" required>
-              </div>
-
-              <div class="mb-3">
-                <label class="form-label"><i class="bi bi-calendar"></i> Date of Birth</label>
-                <input type="date" class="form-control" name="dob">
-              </div>
-
-              <div class="mb-3">
-                <label class="form-label"><i class="bi bi-briefcase"></i> Role</label>
-                <select class="form-select" name="role" required>
-                  <option value="">-- Select Role --</option>
-                  <option>Shed Manager</option>
-                  <option>Control Unit</option>
-                  <option>Vehicle Maintenance</option>
-                  <option>Bus Driver</option>
-                  <option>Bus Conductor</option>
-                </select>
-              </div>
-
-              <div class="mb-3">
-                <label class="form-label"><i class="bi bi-credit-card"></i> ID Card No</label>
-                <input type="text" class="form-control" name="id_card_no">
-              </div>
-
-              <div class="mb-3">
-                <label class="form-label"><i class="bi bi-telephone"></i> Phone</label>
-                <input type="text" class="form-control" name="phone">
-              </div>
-
-              <div class="mb-3">
-                <label class="form-label"><i class="bi bi-geo-alt"></i> Address</label>
-                <textarea class="form-control" name="address" rows="2"></textarea>
-              </div>
-
-              <div class="mb-3">
-                <label class="form-label"><i class="bi bi-image"></i> Profile Picture</label>
-                <input type="file" class="form-control" name="profile_pic">
-              </div>
-
-              <div class="mb-3">
-                <label class="form-label"><i class="bi bi-toggle-on"></i> Status</label>
-                <select class="form-select" name="status">
-                  <option value="active">Active</option>
-                  <option value="inactive">Inactive</option>
-                  <option value="suspended">Suspended</option>
-                </select>
-              </div>
-
-              <div class="mb-3">
-                <label class="form-label"><i class="bi bi-clock"></i> Shift Time</label>
-                <input type="text" class="form-control" name="shift_time" placeholder="e.g. Morning 6AM - 2PM">
-              </div>
-
-              <div class="d-grid">
-                <button type="submit" name="create_admin" class="btn btn-primary">
-                  <i class="bi bi-check-circle"></i> Create Admin
-                </button>
-              </div>
-            </form>
-
-            <?php
-            if (isset($_POST['create_admin'])) {
-              $full_name = $_POST['full_name'];
-              $email = $_POST['email'];
-              $password = password_hash($_POST['password'], PASSWORD_BCRYPT);
-              $dob = $_POST['dob'];
-              $role = $_POST['role'];
-              $id_card_no = $_POST['id_card_no'];
-              $phone = $_POST['phone'];
-              $address = $_POST['address'];
-              $status = $_POST['status'];
-              $shift_time = $_POST['shift_time'];
-
-              $profile_pic = null;
-              if (!empty($_FILES['profile_pic']['name'])) {
-                $target_dir = "../uploads/";
-                if (!is_dir($target_dir)) mkdir($target_dir, 0777, true);
-                $file_name = time() . "_" . basename($_FILES["profile_pic"]["name"]);
-                $target_file = $target_dir . $file_name;
-                if (move_uploaded_file($_FILES["profile_pic"]["tmp_name"], $target_file)) {
-                  $profile_pic = $target_file;
-                }
-              }
-
-              $sql = "INSERT INTO admins 
-              (full_name, email, password, dob, role, id_card_no, phone, address, profile_pic, status, shift_time) 
-              VALUES 
-              ('$full_name', '$email', '$password', '$dob', '$role', '$id_card_no', '$phone', '$address', '$profile_pic', '$status', '$shift_time')";
-
-              if ($conn->query($sql) === TRUE) {
-                  echo "<script>
-                    var toastEl = document.getElementById('successToast');
-                    var toast = new bootstrap.Toast(toastEl, { delay: 3000 });
-                    toast.show();
-                  </script>";
-              } else {
-                  echo "<script>
-                    var toastEl = document.getElementById('errorToast');
-                    var toast = new bootstrap.Toast(toastEl, { delay: 3000 });
-                    toast.show();
-                  </script>";
-              }
-            }
-            ?>
-          </div>
-        </div>
-      </div>
+            <button type="submit" name="submit" class="btn btn-primary w-100 py-3 mt-4">Create Admin</button>
+        </form>
     </div>
-  </div>
-
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-
-  <script>
-    const form = document.querySelector("form");
-    const inputs = form.querySelectorAll("input, select, textarea");
-    const progressBar = document.getElementById("formProgress");
-
-    inputs.forEach(input => {
-      input.addEventListener("input", updateProgress);
-    });
-
-    function updateProgress() {
-      let filled = 0;
-      inputs.forEach(input => {
-        if (input.value.trim() !== "") filled++;
-      });
-      let percent = Math.round((filled / inputs.length) * 100);
-      progressBar.style.width = percent + "%";
-      progressBar.innerText = percent + "%";
-      progressBar.setAttribute("aria-valuenow", percent);
-    }
-  </script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
