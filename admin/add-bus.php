@@ -128,6 +128,11 @@ if ($admins_result->num_rows > 0) {
         }
     </style>
 </head>
+<a href="admin-dashboard.php" class="btn btn-primary position-fixed top-0 end-0 m-4 rounded-circle shadow-lg"
+   style="width: 48px; height: 48px; display: flex; align-items: center; justify-content: center;" 
+   title="Go to Dashboard">
+ <i class="bi bi-house-door-fill text-white fs-5"></i>
+</a>
 <body class="text-light">
     <div class="container">
         <h1 class="mb-3"><i class="bi bi-bus-front me-2"></i>Add Bus</h1>
