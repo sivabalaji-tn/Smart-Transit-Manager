@@ -87,7 +87,7 @@ $conn->close();
       <div class="card text-center shadow-lg">
 
           <!-- Colorful Bus Image -->
-          <img id="busImage" src="https://img.lovepik.com/element/45000/6805.png_300.png" 
+          <img id="busImage" src="https://uploads.onecompiler.io/42ugmqeh6/43wpwpt89/bus_15167291.png" 
                alt="Bus" class="bus-logo">
 
           <h4 class="mb-4 text-white animate__animated animate__pulse animate__infinite">
