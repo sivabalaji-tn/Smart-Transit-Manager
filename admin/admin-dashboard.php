@@ -45,6 +45,7 @@ $conn->close();
   <title>Admin Dashboard</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+   <?php include 'header.php'; ?>
   <style>
       body {
           background: linear-gradient(135deg, #1a1e22, #23272b);
@@ -171,5 +172,6 @@ $conn->close();
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <?php include 'footer.php'; ?>
 </body>
 </html>

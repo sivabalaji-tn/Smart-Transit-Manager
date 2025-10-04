@@ -53,12 +53,8 @@ if (isset($_POST['submit'])) {
     <title>Create Admin</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <?php include 'header.php'; ?>
 </head>
-<a href="admin-dashboard.php" class="btn btn-primary position-fixed top-0 end-0 m-4 rounded-circle shadow-lg"
-   style="width: 48px; height: 48px; display: flex; align-items: center; justify-content: center;" 
-   title="Go to Dashboard">
- <i class="bi bi-house-door-fill text-white fs-5"></i>
-</a>
 <body class="bg-dark text-light">
     <?php
     if (isset($_SESSION['message'])): 
