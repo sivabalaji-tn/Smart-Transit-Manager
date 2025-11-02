@@ -1,10 +1,4 @@
 <?php
-// FILE: livetrack.php (Fixed and Completed)
-// - Expects includes/db.php to provide $conn (mysqli)
-// - Expects GET ?route_id=..&bus_id=..
-// - Expects API endpoints:
-//    get-bus-location.php?bus_id=ID  -> JSON { current_lat, current_lon, status, timestamp, emergency }
-//    report-emergency.php           -> POST { bus_id, lat, lon } returns JSON { success:true, message:"..." }
 
 date_default_timezone_set('Asia/Kolkata');
 include 'includes/db.php';
@@ -161,13 +155,14 @@ $conn->close();
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 /* --- Config & Data passed from PHP --- */
 const stops = <?= json_encode($stops, JSON_NUMERIC_CHECK) ?>; // [{stop_id, stop_name, latitude, longitude, sequence_number}, ...]
 const busId = <?= json_encode($bus_id) ?>;
 const initialLat = <?= json_encode($initialLat) ?>;
 const initialLon = <?= json_encode($initialLon) ?>;
-const arrivalDistanceMeters = 100; // proximity threshold (meters)
+const arrivalDistanceMeters = 100; // 100 meters proximity threshold
 const apiBusLocation = 'get-bus-location.php?bus_id=' + encodeURIComponent(busId);
 const apiReportEmergency = 'report-emergency.php'; // POST { bus_id, lat, lon }
 
@@ -180,34 +175,52 @@ let tripStarted = false;
 let stopVisited = new Array(stops.length).fill(false);
 let pollingInterval = 1500; // ms
 let pollingTimer = null;
-let latestLocation = { lat: null, lon: null }; // to use when emergency pressed
+let latestLocation = { lat: null, lon: null }; 
 let lastFetchErrorLogged = false;
 
-/* --- DOM refs --- */
-const logFeedContainer = document.getElementById('log-feed');
-const statusTextEl = document.getElementById('status-text');
+/* --- Custom Icons --- */
 
-/* --- Helpers --- */
+// 1. Bus Icon (Moving Vehicle)
+const BusIcon = L.divIcon({
+    className: 'custom-bus-icon transparent-icon', // Use transparent-icon helper
+    html: '<i class="bi bi-bus-front-fill text-danger fs-3"></i>', // Prominent RED bus icon
+    iconSize: [30, 30],
+    iconAnchor: [15, 30] // Anchor icon correctly to its tip/bottom center
+});
+
+// 2. Stop Icon (Static Star/Dot)
+const StopIcon = L.divIcon({
+    className: 'custom-stop-icon transparent-icon',
+    html: '<i class="bi bi-geo-alt-fill text-warning fs-5"></i>', // Small YELLOW location marker
+    iconSize: [20, 20],
+    iconAnchor: [10, 20]
+});
+
+
+/* --- DOM refs --- */
+/* Log feed helper */
+const logFeedContainer = document.getElementById('log-feed'); // Reference the inner container
+
 function addLog(messageHtml, level='info') {
-    // messageHtml can include small markup (<span>...), but we escape user data before passing into message
     const time = new Date().toLocaleTimeString('en-IN', { hour12:false });
     const div = document.createElement('div');
     div.className = 'log-entry';
     const timeSpan = `<span class="log-time">${time}</span>`;
     const textClass = (level === 'success' ? 'log-success' : (level === 'warn' ? 'log-warning' : (level === 'danger' ? 'log-danger' : '')) );
     div.innerHTML = `<div class="small">${timeSpan}<span class="log-text ${textClass}"> ${messageHtml}</span></div>`;
-    // Remove initial 'waiting' message if present
+    
+    // Fix: Target the specific log feed container
     const waiting = logFeedContainer.querySelector('.text-muted');
     if (waiting) waiting.remove();
-    // Prepend new log (most recent on top)
-    logFeedContainer.prepend(div);
+    logFeedContainer.prepend(div); // Prepend new log
 }
+// ...
 
 function escapeHtml(str) {
-  if (str === null || str === undefined) return '';
-  return String(str).replace(/[&<>"'`=\/]/g, function(s) {
-    return ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','/':'&#x2F;','`':'&#x60;','=':'&#x3D;' })[s];
-  });
+    if (str === null || str === undefined) return '';
+    return String(str).replace(/[&<>"'`=\/]/g, function(s) {
+        return ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','/':'&#x2F;','`':'&#x60;','=':'&#x3D;' })[s];
+    });
 }
 
 function haversine(lat1, lon1, lat2, lon2) {
@@ -216,8 +229,8 @@ function haversine(lat1, lon1, lat2, lon2) {
     const dLat = toRad(lat2 - lat1);
     const dLon = toRad(lon2 - lon1);
     const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-              Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
-              Math.sin(dLon/2) * Math.sin(dLon/2);
+             Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+             Math.sin(dLon/2) * Math.sin(dLon/2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
     return R * c;
 }
@@ -234,10 +247,12 @@ function initMapAndRoute() {
         const lat = parseFloat(s.latitude);
         const lon = parseFloat(s.longitude);
         if (isNaN(lat) || isNaN(lon)) return;
-        const marker = L.marker([lat, lon], { title: s.stop_name }).addTo(map);
+        
+        // Use the distinct StopIcon here
+        const marker = L.marker([lat, lon], { title: s.stop_name, icon: StopIcon }).addTo(map);
         marker.bindPopup(`<strong>${escapeHtml(s.stop_name)}</strong><br/>Stop ${s.sequence_number ?? (idx+1)}`);
+
         routeCoords.push([lat, lon]);
-        // ensure approachLogged exists on JS object
         s.approachLogged = false;
     });
 
@@ -253,16 +268,13 @@ function initMapAndRoute() {
 /* --- Update bus location from API --- */
 function updateBusLocation() {
     fetch(apiBusLocation + '&_=' + Date.now())
-    .then(r => {
-        if (!r.ok) throw new Error('Network response not ok');
-        return r.json();
-    })
-    .then(data => {
+      .then(r => r.json())
+      .then(data => {
         lastFetchErrorLogged = false;
         // expected: { current_lat, current_lon, status, timestamp, emergency }
-        const lat = (data.current_lat !== undefined) ? parseFloat(data.current_lat) : 0;
-        const lon = (data.current_lon !== undefined) ? parseFloat(data.current_lon) : 0;
-        const status = data.status || 'Offline';
+        const lat = parseFloat(data.current_lat) || 0;
+        const lon = parseFloat(data.current_lon) || 0;
+        const status = data.status || 'Offline'; 
         const ts = data.timestamp || new Date().toISOString();
         const emergencyFlag = !!data.emergency;
 
@@ -276,7 +288,6 @@ function updateBusLocation() {
 
         // If not active or coords invalid, mark offline
         if (status !== 'Active' || isNaN(lat) || isNaN(lon) || lat === 0 || lon === 0) {
-            // remove bus marker if exists
             if (busMarker) { map.removeLayer(busMarker); busMarker = null; }
             if (busMarkerCircle) { map.removeLayer(busMarkerCircle); busMarkerCircle = null; }
 
@@ -294,23 +305,24 @@ function updateBusLocation() {
         }
         prevStatus = status;
 
-        // Place or update bus marker
+        // Place or move marker
         const latLng = L.latLng(lat, lon);
         if (busMarker) {
             busMarker.setLatLng(latLng);
             busMarker.getPopup().setContent(`<strong>Bus Location</strong><br/>${new Date(ts).toLocaleTimeString()}`);
         } else {
-            busMarker = L.marker(latLng, { title: 'Bus Current Location' }).addTo(map);
-            busMarker.bindPopup(`<strong>Bus Location</strong><br/>${new Date(ts).toLocaleTimeString()}`);
+            // Use the distinct BusIcon here
+            busMarker = L.marker(latLng, { title: 'Bus Current Location', icon: BusIcon }).addTo(map);
+            busMarker.bindPopup(`<strong>Bus Location</strong><br/>${new Date(ts).toLocaleTimeString()}`).openPopup();
         }
-        // circle for visibility
+        // add small circle for visibility
         if (busMarkerCircle) {
             busMarkerCircle.setLatLng(latLng);
         } else {
             busMarkerCircle = L.circle(latLng, { radius: 12, color:'#0d6efd', fillColor:'#0d6efd', fillOpacity:0.9 }).addTo(map);
         }
 
-        // Check for stops (first unvisited)
+        // Check stops in order (Logging Logic)
         for (let i = 0; i < stops.length; i++) {
             if (stopVisited[i]) continue;
             const s = stops[i];
@@ -318,13 +330,12 @@ function updateBusLocation() {
             const stopLon = parseFloat(s.longitude);
             if (isNaN(stopLat) || isNaN(stopLon)) continue;
             const d = haversine(lat, lon, stopLat, stopLon);
+            
             if (d <= arrivalDistanceMeters) {
                 addLog(`<span class="log-warning">ARRIVED:</span> Reached ${escapeHtml(s.stop_name)} (Stop ${s.sequence_number ?? (i+1)})`, 'warn');
                 stopVisited[i] = true;
-                // optionally open popup on the stop marker (not tracked separately here)
-                break; // only log one stop per update cycle
-            } else if (d <= (arrivalDistanceMeters * 2)) {
-                // approaching zone (100m - 200m)
+                break; 
+            } else if (d <= (arrivalDistanceMeters * 2) && d > arrivalDistanceMeters) {
                 if (!s.approachLogged) {
                     addLog(`<span class="log-text text-info-accent">APPROACHING:</span> ${escapeHtml(s.stop_name)} — ${Math.round(d)} m away`);
                     s.approachLogged = true;
@@ -332,28 +343,26 @@ function updateBusLocation() {
                 break;
             } else {
                 if (s.approachLogged) {
-                    // reset if bus moved away again
                     s.approachLogged = false;
                 }
             }
         }
-
-        // Emergency reported via API
+        
+        // Emergency flag logic (if set by API)
         if (emergencyFlag) {
             addLog(`<span class="log-danger">EMERGENCY REPORTED</span> — Driver pressed emergency.`, 'danger');
             const emMarker = L.circle([lat, lon], { radius: 50, color:'#ff4d4f', fillColor:'#ff4d4f', fillOpacity: 0.15 }).addTo(map);
             setTimeout(()=>{ if (map && map.hasLayer(emMarker)) map.removeLayer(emMarker); }, 45_000);
         }
 
-    })
-    .catch(err => {
-        // log only once while server is unreachable
+      })
+      .catch(err => {
         if (!lastFetchErrorLogged) {
             addLog('Tracking server unreachable. Retrying...', 'danger');
             lastFetchErrorLogged = true;
         }
         console.error('updateBusLocation error', err);
-    });
+      });
 }
 
 /* --- Start and stop polling --- */
@@ -367,7 +376,7 @@ function stopPolling() {
     pollingTimer = null;
 }
 
-/* --- Emergency button behavior --- */
+/* --- Emergency button wiring --- */
 document.getElementById('emergency-btn').addEventListener('click', () => {
     let lat = null, lon = null;
     if (busMarker) {
@@ -376,29 +385,9 @@ document.getElementById('emergency-btn').addEventListener('click', () => {
     } else if (latestLocation.lat && latestLocation.lon) {
         lat = latestLocation.lat; lon = latestLocation.lon;
     } else {
-        // attempt to fetch a single latest location synchronously
-        addLog('<span class="log-danger">EMERGENCY:</span> No known bus location. Fetching current location then reporting...', 'danger');
-        fetch(apiBusLocation + '&_=' + Date.now())
-        .then(r => r.json())
-        .then(data => {
-            const la = parseFloat(data.current_lat) || 0;
-            const lo = parseFloat(data.current_lon) || 0;
-            if (la && lo) reportEmergency(la, lo);
-            else addLog('<span class="log-danger">EMERGENCY:</span> Could not determine current location to report.', 'danger');
-        })
-        .catch(e => {
-            console.error(e);
-            addLog('<span class="log-danger">EMERGENCY ERROR:</span> Unable to fetch current location.', 'danger');
-        });
+        addLog('<span class="log-danger">EMERGENCY:</span> No known bus location. Cannot report.', 'danger');
         return;
     }
-
-    // validate coords
-    if (lat === null || lon === null || isNaN(lat) || isNaN(lon)) {
-        addLog('<span class="log-danger">EMERGENCY:</span> Invalid coordinates, unable to report.', 'danger');
-        return;
-    }
-
     reportEmergency(lat, lon);
 });
 
@@ -426,7 +415,6 @@ function reportEmergency(lat, lon) {
         addLog('<span class="log-danger">EMERGENCY ERROR:</span> Could not contact server.', 'danger');
     });
 
-    // cleanup marker after 60s
     setTimeout(()=>{ if (map && map.hasLayer(emMarker)) map.removeLayer(emMarker); }, 60_000);
 }
 
