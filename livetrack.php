@@ -11,7 +11,6 @@ if ($route_id === 0 || $bus_id === 0) {
     exit;
 }
 
-// default map center (if no stops found)
 $initialLat = 11.0582;
 $initialLon = 77.3883;
 $route_number = 'N/A';
@@ -19,7 +18,7 @@ $bus_number = 'N/A';
 $stops = [];
 
 try {
-    // Fetch route/bus basic info
+
     $sql = "SELECT r.route_number, b.bus_number
             FROM routes r
             JOIN buses b ON r.route_id = b.route_id
@@ -34,7 +33,7 @@ try {
     }
     $stmt->close();
 
-    // Fetch stops with coordinates ordered by sequence_number
+   
     $sql = "SELECT stop_id, stop_name, latitude, longitude, sequence_number
             FROM route_stops
             WHERE route_id = ?
@@ -44,7 +43,7 @@ try {
     $stmt->execute();
     $res = $stmt->get_result();
     while ($r = $res->fetch_assoc()) {
-        // Keep as numeric strings to avoid JSON float precision surprises, JS will parse as needed
+        
         $r['latitude'] = (string)$r['latitude'];
         $r['longitude'] = (string)$r['longitude'];
         $stops[] = $r;
@@ -58,7 +57,7 @@ try {
     }
 
 } catch (Exception $e) {
-    // In production, log the exception
+   
 }
 
 $conn->close();
@@ -85,7 +84,7 @@ $conn->close();
   html,body{height:100%;}
   body { background: var(--bg); color: #e9eef6; font-family: Inter, system-ui, sans-serif; }
   .main-container{ background: var(--card); border-radius: 12px; padding: 16px; box-shadow: 0 6px 20px rgba(0,0,0,0.6); }
-  /* Layout */
+
   #map { height: 75vh; min-height: 360px; border-radius:8px; }
   #log-panel { height: 75vh; min-height: 360px; overflow-y:auto; background:#0b0e11; border-radius:8px; padding: 12px; }
   .log-entry { padding: 10px; border-radius:8px; margin-bottom:10px; background: linear-gradient(90deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); border: 1px solid rgba(255,255,255,0.03); }
@@ -96,16 +95,16 @@ $conn->close();
   .log-warning{ color: var(--warn); font-weight:700; }
   .log-danger{ color: #ff9b9b; font-weight:700; }
   .text-info-accent { color: #5bc0de !important; }
-  /* Emergency button */
+  
   #emergency-btn{ position: fixed; right: 18px; bottom: 110px; z-index: 1400; }
   .floating-badge{ position: fixed; right: 18px; bottom: 20px; z-index:1400; }
-  /* Mobile adjustments: logs become bottom collapsible */
+
   @media (max-width: 991px) {
     #map { height: 62vh; min-height: 320px; }
     #log-panel { height: auto; max-height: 32vh; }
     #emergency-btn{ bottom: 130px; right: 14px; }
   }
-  /* small helper */
+
   .transparent-icon { background: transparent; border: none; }
 </style>
 </head>
@@ -157,41 +156,38 @@ $conn->close();
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-/* --- Config & Data passed from PHP --- */
-const stops = <?= json_encode($stops, JSON_NUMERIC_CHECK) ?>; // [{stop_id, stop_name, latitude, longitude, sequence_number}, ...]
+
+const stops = <?= json_encode($stops, JSON_NUMERIC_CHECK) ?>; /
 const busId = <?= json_encode($bus_id) ?>;
 const initialLat = <?= json_encode($initialLat) ?>;
 const initialLon = <?= json_encode($initialLon) ?>;
-const arrivalDistanceMeters = 100; // 100 meters proximity threshold
+const arrivalDistanceMeters = 100; 
 const apiBusLocation = 'get-bus-location.php?bus_id=' + encodeURIComponent(busId);
-const apiReportEmergency = 'report-emergency.php'; // POST { bus_id, lat, lon }
+const apiReportEmergency = 'report-emergency.php'; 
 
-/* --- State --- */
 let map = null;
 let busMarker = null;
 let busMarkerCircle = null;
 let prevStatus = null;
 let tripStarted = false;
 let stopVisited = new Array(stops.length).fill(false);
-let pollingInterval = 1500; // ms
+let pollingInterval = 1500; 
 let pollingTimer = null;
 let latestLocation = { lat: null, lon: null }; 
 let lastFetchErrorLogged = false;
 
-/* --- Custom Icons --- */
 
-// 1. Bus Icon (Moving Vehicle)
 const BusIcon = L.divIcon({
-    className: 'custom-bus-icon transparent-icon', // Use transparent-icon helper
-    html: '<i class="bi bi-bus-front-fill text-danger fs-3"></i>', // Prominent RED bus icon
+    className: 'custom-bus-icon transparent-icon', 
+    html: '<i class="bi bi-bus-front-fill text-danger fs-3"></i>', 
     iconSize: [30, 30],
-    iconAnchor: [15, 30] // Anchor icon correctly to its tip/bottom center
+    iconAnchor: [15, 30] 
 });
 
-// 2. Stop Icon (Static Star/Dot)
+
 const StopIcon = L.divIcon({
     className: 'custom-stop-icon transparent-icon',
-    html: '<i class="bi bi-geo-alt-fill text-warning fs-5"></i>', // Small YELLOW location marker
+    html: '<i class="bi bi-geo-alt-fill text-warning fs-5"></i>', 
     iconSize: [20, 20],
     iconAnchor: [10, 20]
 });
