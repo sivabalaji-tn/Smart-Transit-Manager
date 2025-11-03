@@ -106,7 +106,7 @@ $conn->close();
 <body>
     <nav class="navbar navbar-dark bg-dark shadow">
         <div class="container-fluid">
-            <a class="navbar-brand fw-bold text-primary" href="#">🚍 Smart Transit Tracker</a>
+            <a class="navbar-brand fw-bold text-primary" href="#"> Smart Transit Tracker</a>
         </div>
     </nav>
 
@@ -142,7 +142,7 @@ $conn->close();
                 </div>
 
                 <button type="submit" class="btn btn-primary w-100 mt-3 animate__animated animate__bounceIn">
-                    🚍 Track Bus
+                    Track Bus
                 </button>
             </form>
         </div>

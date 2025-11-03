@@ -67,10 +67,6 @@
     <footer class="mt-auto">
         <div class="container text-center text-md-start">
 
-            <div class="footer-logo text-center mb-5">
-                <img src="assets/img/bus-logo.png" class="rounded-circle mb-3" alt="Bus Tracker Logo">
-                <p style="color:#adb5bd; font-size:14px; font-weight:bold; margin-top:5px;">Smart Transit Manager</p>
-            </div>
 
             <div class="footer-social text-center mt-4">
                 <a href="#"><i class="bi bi-facebook"></i></a>
